@@ -12,5 +12,7 @@ const config_info={
 
      
      
- } 
+ },
+ "API_BASE":"",
+ "PROXY_BASE"
 }

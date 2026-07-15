@@ -4,8 +4,8 @@ export default {
     const channel = url.searchParams.get("channel"); // এখানে শুধু চ্যানেলের নাম দিবেন
 
     // ১. আপনার মূল বেস ইউআরএল সেটআপ
-    const API_BASE = "https://allinonereborn.online/sony-new/playlists/";
-    const PROXY_BASE = "https://allinonereborn.online/livtest3/stream_proxy.php?url=";
+    const API_BASE = "https://allinonereborn2.online/sony-new/playlists/";
+    const PROXY_BASE ="https://allinonereborn2.online/livtest3/stream_proxy.php?url=";
 
     // যদি সরাসরি কোনো পূর্ণাঙ্গ ইউআরএল প্রক্সি করার প্রয়োজন হয় (সেগমেন্টের জন্য)
     const targetUrl = url.searchParams.get("url");

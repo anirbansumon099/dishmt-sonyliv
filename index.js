@@ -28,33 +28,33 @@ export default {
       });
     }
 
-    // ২. আপনার মূল বেস ইউআরএল এবং প্রক্সি বেস
+    // ২. আপনার মূল বেস ইউআরএল সেটআপ
     const API_BASE = "https://allinonereborn2.online/sony-new/playlists/";
     const PROXY_BASE = "https://allinonereborn2.online/livtest3/stream_proxy.php?url=";
 
-    // সেগমেন্ট বা অন্য কোনো ডাইরেক্ট লিঙ্কের জন্য
+    // চ্যানেল নাম বের করা: কুয়েরি প্যারামিটার (?channel=) অথবা ক্লিন পাথ (/channel_name/playlist.m3u8) উভয় পদ্ধতিই কাজ করবে
+    let channel = url.searchParams.get("channel");
+    const match = pathname.match(/^\/([^\/]+)\/playlist\.m3u8$/);
+    if (!channel && match) {
+      channel = match[1];
+    }
+
+    // যদি সরাসরি কোনো পূর্ণাঙ্গ ইউআরএল প্রক্সি করার প্রয়োজন হয় (সেগমেন্টের জন্য)
     const targetUrl = url.searchParams.get("url");
 
     let finalTargetUrl = "";
-    let playlistBase = "";
 
-    // ৩. পাথ চেক করা (যেমন: /sony_ten4/playlist.m3u8)
-    const match = pathname.match(/^\/([^\/]+)\/playlist\.m3u8$/);
-
-    if (match) {
-      const channel = match[1];
-      // আপনার দেওয়া আগের লজিক অনুযায়ী সঠিক ফরম্যাট
-      finalTargetUrl = `${PROXY_BASE}${encodeURIComponent(API_BASE + channel + ".m3u8")}`;
-      playlistBase = API_BASE;
+    if (channel) {
+        // যদি ইনপুট দেয় 'sony_ten4', তবে এটি তৈরি করবে মূল লিঙ্ক
+        finalTargetUrl = `${PROXY_BASE}${encodeURIComponent(API_BASE + channel + ".m3u8")}`;
     } else if (targetUrl) {
-      // সেগমেন্ট বা ডাইরেক্ট লিঙ্কের জন্য
-      finalTargetUrl = targetUrl;
-      playlistBase = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
+        // সেগমেন্ট বা অন্য কোনো ডাইরেক্ট লিঙ্কের জন্য
+        finalTargetUrl = targetUrl;
     } else {
-      return new Response("Error: Invalid route or missing parameters", { status: 400 });
+        return new Response("Error: Please provide ?channel=name or correct path", { status: 400 });
     }
 
-    // ৪. মূল সার্ভারের জন্য নির্দিষ্ট সব হেডারসমূহ (আগের মতোই বহাল রাখা হয়েছে)
+    // ৩. আপনার মূল নির্দিষ্ট হেডারসমূহ (শতভাগ অক্ষুণ্ণ রাখা হয়েছে)
     const customHeaders = {
       "User-Agent": "Mozilla/5.0 (Android 13; Mobile; rv:150.0) Gecko/150.0 Firefox/150.0",
       "Accept": "*/*",
@@ -69,12 +69,15 @@ export default {
       const response = await fetch(finalTargetUrl, { headers: customHeaders });
       const contentType = response.headers.get("Content-Type") || "";
 
-      // ৫. m3u8 প্লেলিস্ট হলে সেগমেন্ট রিরাইট করা
+      // ৪. m3u8 প্লেলিস্ট হলে সেগমেন্ট রিরাইট করা
       if (finalTargetUrl.includes(".m3u8") || contentType.includes("mpegurl")) {
         let text = await response.text();
         
-        // সেগমেন্টগুলো যাতে এই ওয়ার্কার দিয়েই পাস হয়
+        // সেগমেন্টগুলো যাতে আবার এই ওয়ার্কার দিয়েই যায় (মূল কোডের লজিক)
         const workerUrl = `${url.origin}${url.pathname}?url=`;
+        
+        // বেস ইউআরএল বের করা যাতে রিলেটিভ পাথ ঠিক থাকে
+        const playlistBase = finalTargetUrl.substring(0, finalTargetUrl.lastIndexOf("/") + 1);
 
         const newBody = text.split("\n").map(line => {
           line = line.trim();
@@ -99,7 +102,7 @@ export default {
         });
       }
 
-      // ৬. ভিডিও ডাটা (.ts বা অন্যান্য) সরাসরি রিটার্ন
+      // ৫. ভিডিও ডাটা (.ts) সরাসরি রিটার্ন
       return new Response(response.body, {
         status: response.status,
         headers: { "Content-Type": contentType, "Access-Control-Allow-Origin": "*" }

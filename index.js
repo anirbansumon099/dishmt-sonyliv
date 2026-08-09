@@ -1,11 +1,18 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const channel = url.searchParams.get("channel"); // এখানে শুধু চ্যানেলের নাম দিবেন
+    let channel = url.searchParams.get("channel"); // এখানে শুধু চ্যানেলের নাম দিবেন
 
-    // ১. আপনার মূল বেস ইউআরএল সেটআপ
-    const API_BASE = "https://allinonereborn2.online/sony-new/playlists/";
-    const PROXY_BASE ="https://allinonereborn2.online/livtest3/stream_proxy.php?url=";
+    // সাপোর্ট: /hidden/<channel> পাথ থেকে চ্যানেল নেয়ার সুবিধা
+    const pathname = url.pathname || "/";
+    if (!channel && pathname.startsWith("/hidden/")) {
+      const parts = pathname.split("/").filter(Boolean);
+      if (parts.length >= 2) channel = parts[1];
+    }
+
+    // ১. আপনার মূল বেস ইউআরএল সেটআপ (ইনভায়রনমেন্ট/সিক্রেট থেকে নেওয়া হবে)
+    const API_BASE = env.API_BASE || env.MAIN_SERVER_URL || "";
+    const PROXY_BASE = env.PROXY_BASE || env.PROXY_BASE_URL || "";
 
     // যদি সরাসরি কোনো পূর্ণাঙ্গ ইউআরএল প্রক্সি করার প্রয়োজন হয় (সেগমেন্টের জন্য)
     const targetUrl = url.searchParams.get("url");

@@ -28,29 +28,33 @@ export default {
       });
     }
 
-    // ২. সেগমেন্ট বা ডাইরেক্ট ইউআরএল (?url=...) হ্যান্ডেল করার জন্য
-    const targetUrl = url.searchParams.get("url");
-    let finalTargetUrl = "";
-    let playlistBase = "";
-
+    // ২. আপনার মূল বেস ইউআরএল এবং প্রক্সি বেস
     const API_BASE = "https://allinonereborn2.online/sony-new/playlists/";
     const PROXY_BASE = "https://allinonereborn2.online/livtest3/stream_proxy.php?url=";
 
-    // ৩. পাথ থেকে চ্যানেল নাম ও প্লেলিস্ট চেক করা (যেমন: /sony_ten4/playlist.m3u8)
+    // সেগমেন্ট বা অন্য কোনো ডাইরেক্ট লিঙ্কের জন্য
+    const targetUrl = url.searchParams.get("url");
+
+    let finalTargetUrl = "";
+    let playlistBase = "";
+
+    // ৩. পাথ চেক করা (যেমন: /sony_ten4/playlist.m3u8)
     const match = pathname.match(/^\/([^\/]+)\/playlist\.m3u8$/);
 
     if (match) {
       const channel = match[1];
+      // আপনার দেওয়া আগের লজিক অনুযায়ী সঠিক ফরম্যাট
       finalTargetUrl = `${PROXY_BASE}${encodeURIComponent(API_BASE + channel + ".m3u8")}`;
       playlistBase = API_BASE;
     } else if (targetUrl) {
+      // সেগমেন্ট বা ডাইরেক্ট লিঙ্কের জন্য
       finalTargetUrl = targetUrl;
       playlistBase = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
     } else {
       return new Response("Error: Invalid route or missing parameters", { status: 400 });
     }
 
-    // ৪. নির্দিষ্ট হেডারসমূহ
+    // ৪. মূল সার্ভারের জন্য নির্দিষ্ট সব হেডারসমূহ (আগের মতোই বহাল রাখা হয়েছে)
     const customHeaders = {
       "User-Agent": "Mozilla/5.0 (Android 13; Mobile; rv:150.0) Gecko/150.0 Firefox/150.0",
       "Accept": "*/*",
@@ -95,7 +99,7 @@ export default {
         });
       }
 
-      // ৬. ভিডিও ডাটা (.ts) সরাসরি রিটার্ন
+      // ৬. ভিডিও ডাটা (.ts বা অন্যান্য) সরাসরি রিটার্ন
       return new Response(response.body, {
         status: response.status,
         headers: { "Content-Type": contentType, "Access-Control-Allow-Origin": "*" }

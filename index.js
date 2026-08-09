@@ -1,13 +1,28 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const pathname = url.pathname || "/";
     let channel = url.searchParams.get("channel"); // এখানে শুধু চ্যানেলের নাম দিবেন
 
+    // রুট ল্যান্ডিং পেজ
+    if (pathname === "/" || pathname === "/index.html") {
+      return new Response(getRootHtml(url.origin), {
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
+    }
+
+    // চ্যানেল HTML প্লেয়ার পেজ
+    const channelPageMatch = pathname.match(/^\/([^/]+)\/index\.m3u8$/);
+    if (channelPageMatch) {
+      return new Response(getChannelHtml(channelPageMatch[1], url.origin), {
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
+    }
+
     // সাপোর্ট: /hidden/<channel> পাথ থেকে চ্যানেল নেয়ার সুবিধা
-    const pathname = url.pathname || "/";
-    if (!channel && pathname.startsWith("/hidden/")) {
-      const parts = pathname.split("/").filter(Boolean);
-      if (parts.length >= 2) channel = parts[1];
+    const hiddenRouteMatch = pathname.match(/^\/hidden\/([^/]+)$/);
+    if (!channel && hiddenRouteMatch) {
+      channel = hiddenRouteMatch[1];
     }
 
     // ১. আপনার মূল বেস ইউআরএল সেটআপ (ইনভায়রনমেন্ট/সিক্রেট থেকে নেওয়া হবে)
@@ -88,3 +103,60 @@ export default {
     }
   }
 };
+
+function getRootHtml(origin) {
+  return `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Channel Proxy Worker</title>
+  <style>body{font-family:system-ui, sans-serif;margin:0;padding:2rem;background:#111;color:#f8f8f8;}a{color:#4fc3f7;}code{background:#222;padding:.2rem .4rem;border-radius:.3rem;}</style>
+</head>
+<body>
+  <h1>Worker Proxy</h1>
+  <p>Use a channel page or hidden proxy endpoint.</p>
+  <ul>
+    <li><a href="/sony_ten4/index.m3u8">/sony_ten4/index.m3u8</a> — HTML player page</li>
+    <li><code>/hidden/sony_ten4</code> — stream proxy endpoint</li>
+    <li><code>?channel=sony_ten4</code> — query-based proxy</li>
+  </ul>
+  <p>Example channel page: <a href="/sony_ten4/index.m3u8">/sony_ten4/index.m3u8</a></p>
+  <p>অনুগ্রহ করে সিক্রেট হিসেবে <code>API_BASE</code> ও <code>PROXY_BASE</code> সেট করুন।</p>
+</body>
+</html>`;
+}
+
+function getChannelHtml(channel, origin) {
+  const streamUrl = `${origin}/hidden/${encodeURIComponent(channel)}`;
+  return `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLAY: ${channel}</title>
+  <style>body{margin:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;}#player{width:100%;max-width:980px;height:60vh;background:#000;} .info{position:absolute;top:1rem;left:1rem;right:1rem;font-size:0.95rem;}</style>
+</head>
+<body>
+  <div class="info">Channel: <strong>${channel}</strong> · Source: <a href="${streamUrl}" style="color:#8df;">hidden proxy</a></div>
+  <video id="player" controls autoplay playsinline muted></video>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
+  <script>
+    const video = document.getElementById('player');
+    const src = '${streamUrl}';
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+    } else if (window.Hls) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        console.error('HLS error', data);
+      });
+    } else {
+      document.body.innerHTML = '<p style="color:#f66;">এই ব্রাউজারে HLS প্লে করতে পারে না।</p>';
+    }
+  </script>
+</body>
+</html>`;
+}

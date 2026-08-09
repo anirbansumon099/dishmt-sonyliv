@@ -24,8 +24,10 @@ Replace the contents with your real base URL (for example `https://example.com/s
 
 Usage examples
 -
-- Query by channel: `https://<your-worker>/?channel=sony_ten4`
+- Root landing page: `https://<your-worker>/`
+- Channel HTML page: `https://<your-worker>/sony_ten4/index.m3u8`
 - Path-style hidden endpoint: `https://<your-worker>/hidden/sony_ten4`
+- Query by channel: `https://<your-worker>/?channel=sony_ten4`
 
 The code reads `env.API_BASE` and `env.PROXY_BASE` at runtime, so the real server addresses are not stored in the repo.
 
